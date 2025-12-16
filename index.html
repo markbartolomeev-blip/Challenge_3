@@ -6,6 +6,7 @@
 <title>TulenmasCandy Box</title>
 
 <style>
+*{box-sizing:border-box}
 body{
   margin:0;
   background:#0b0b0b;
@@ -25,19 +26,19 @@ body{
   position:fixed;
   left:10px;
   top:80px;
-  font-size:26px;
+  font-size:24px;
 }
 
 #box{
   position:relative;
-  margin:70px auto 0;
+  margin:50px auto 0;
   width:90vw;
-  max-width:400px;
+  max-width:420px;
   height:55vh;
   border:4px solid #fff;
   border-radius:20px;
-  overflow:hidden;
   background:#1a1a1a;
+  overflow:hidden;
 }
 
 .candy{
@@ -48,22 +49,22 @@ body{
 
 #counter{
   text-align:center;
-  margin-top:10px;
+  margin-top:12px;
   font-size:18px;
 }
 
 #stopBtn{
   position:fixed;
-  bottom:20px;
+  bottom:70px;
   left:50%;
   transform:translateX(-50%);
-  width:120px;
-  height:120px;
+  width:130px;
+  height:130px;
   border-radius:50%;
   border:none;
   background:red;
   color:#fff;
-  font-size:18px;
+  font-size:20px;
   font-weight:bold;
 }
 
@@ -79,16 +80,15 @@ body{
 }
 
 .box{
-  font-size:20px;
   padding:20px;
+  font-size:18px;
 }
 
 button{
-  margin-top:20px;
-  padding:12px 20px;
-  font-size:16px;
+  padding:12px 22px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
+  font-size:16px;
 }
 </style>
 </head>
@@ -121,8 +121,8 @@ button{
     <p>
       Конфеты падают в коробку 🍬<br><br>
       Нажми <b>СТОП</b>, когда количество<br>
-      будет <b>в пределах ±5</b> от цели.<br><br>
-      Все сердца 💔 — блокировка навсегда.
+      будет в пределах <b>±5</b> от цели.<br><br>
+      5 ошибок — блокировка навсегда.
     </p>
     <button onclick="startGame()">Понятно</button>
   </div>
@@ -147,19 +147,19 @@ if(localStorage.getItem("tulen_blocked")){
     </div>`;
 }
 
-/* ПРЕДЗАГРУЗКА ТЕКСТУРЫ */
+/* ПРЕДЗАГРУЗКА */
 const preload = new Image();
 preload.src = candyImg;
-preload.onload = () => {
+preload.onload = ()=>{
   document.getElementById("loading").style.display="none";
   document.getElementById("tutorial").style.display="flex";
 };
 
-/* НАСТРОЙКИ */
+/* НАСТРОЙКИ СЛОЖНОСТЕЙ */
 const levels = [
-  {speed:700, streams:1, min:20, max:40},
-  {speed:400, streams:2, min:50, max:80},
-  {speed:220, streams:3, min:80, max:120}
+  {speed:650, streams:1, min:20, max:40},
+  {speed:380, streams:2, min:50, max:80},
+  {speed:200, streams:3, min:80, max:120}
 ];
 
 let level = 0;
@@ -169,7 +169,6 @@ let count = 0;
 let running = false;
 let interval;
 let progress = ["🕐","🕐","🕐"];
-let stackHeight = 0;
 
 const box = document.getElementById("box");
 const heartsEl = document.getElementById("hearts");
@@ -197,7 +196,6 @@ function startLevel(){
   const l = levels[level];
   goal = rand(l.min, l.max);
   count = 0;
-  stackHeight = 0;
   running = true;
   box.innerHTML="";
   updateUI();
@@ -207,27 +205,50 @@ function startLevel(){
   }, l.speed);
 }
 
+/* 🍬 РЕАЛЬНОЕ ПАДЕНИЕ И СТАК */
 function dropCandy(){
   if(!running) return;
 
-  const c = document.createElement("img");
-  c.src = candyImg;
-  c.className="candy";
-  c.style.left = rand(5,95)+"%";
-  box.appendChild(c);
+  const candy = document.createElement("img");
+  candy.src = candyImg;
+  candy.className = "candy";
 
-  const candySize = 26;
-  const targetY = box.clientHeight - candySize - stackHeight;
-  stackHeight += candySize * 0.9;
+  const size = 26;
+  let x = rand(10, box.clientWidth - size - 10);
+  let y = -size;
 
-  let y = -30;
+  candy.style.left = x+"px";
+  candy.style.top = y+"px";
+  box.appendChild(candy);
+
   const fall = setInterval(()=>{
-    y += 6;
-    if(y >= targetY){
-      y = targetY;
-      clearInterval(fall);
+    y += 5;
+    let stop = false;
+
+    // ДНО
+    if(y + size >= box.clientHeight){
+      y = box.clientHeight - size;
+      stop = true;
     }
-    c.style.top = y + "px";
+
+    // СТОЛКНОВЕНИЕ
+    const others = document.querySelectorAll(".candy");
+    others.forEach(o=>{
+      if(o===candy) return;
+      const oy = parseFloat(o.style.top);
+      const ox = parseFloat(o.style.left);
+
+      const overlapX = x < ox+size && x+size > ox;
+      const touchY = y+size >= oy && y+size <= oy+6;
+
+      if(overlapX && touchY){
+        y = oy - size;
+        stop = true;
+      }
+    });
+
+    candy.style.top = y+"px";
+    if(stop) clearInterval(fall);
   },16);
 
   count++;
@@ -247,11 +268,7 @@ function stopGame(){
       overlay.style.display="flex";
       overlayText.innerHTML=`
         <h2>🎉 ПОБЕДА</h2>
-        <p>
-          Все сложности пройдены ✅✅✅<br><br>
-          Пришли скрин в группу<br>
-          <b>«TulenmasCandy Hunt»</b>
-        </p>`;
+        <p>Все сложности пройдены ✅✅✅</p>`;
     }else{
       showOverlay("Сложность пройдена ✅", startLevel);
     }
