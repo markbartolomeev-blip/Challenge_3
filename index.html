@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TulenmasCandy Box</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #0b0b0b;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #top {
+    text-align: center;
+    font-size: 28px;
+    padding: 10px;
+  }
+
+  #target {
+    font-size: 18px;
+    margin-top: 5px;
+  }
+
+  #box {
+    position: relative;
+    margin: 10px auto;
+    width: 90vw;
+    max-width: 400px;
+    height: 60vh;
+    border: 4px solid #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #1a1a1a;
+  }
+
+  .candy {
+    position: absolute;
+    width: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  #stopBtn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: none;
+    background: red;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+  }
+
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 10;
+    display: none;
+  }
+
+  #overlay .box {
+    font-size: 20px;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="top">
+  <div id="lives">🕐 🕐 🕐</div>
+  <div id="target">Цель: <span id="goal"></span></div>
+</div>
+
+<div id="box"></div>
+
+<button id="stopBtn">СТОП</button>
+
+<div id="overlay">
+  <div class="box" id="overlayText"></div>
+</div>
+
+<script>
+/* ===== НАСТРОЙКИ ===== */
+const candyImg = "0D1FE365-BEBC-45DE-B474-68D1B195F3AC.png";
+
+const difficulties = {
+  easy:  { lives: 3, speed: 800, min: 20, max: 40 },
+  hard:  { lives: 4, speed: 450, min: 50, max: 80 },
+  insane:{ lives: 5, speed: 250, min: 80, max: 120 }
+};
+
+// 👉 МЕНЯЙ СЛОЖНОСТЬ ЗДЕСЬ
+const mode = "easy"; // easy | hard | insane
+/* ===================== */
+
+const cfg = difficulties[mode];
+let lives = cfg.lives;
+let goal = rand(cfg.min, cfg.max);
+let count = 0;
+let running = true;
+let interval;
+
+const box = document.getElementById("box");
+const livesEl = document.getElementById("lives");
+const goalEl = document.getElementById("goal");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+goalEl.textContent = goal;
+updateLives();
+
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+function updateLives(result) {
+  let out = [];
+  for (let i = 0; i < cfg.lives; i++) {
+    if (i < cfg.lives - lives && result) {
+      out.push(result === "win" ? "✅" : "❌");
+    } else {
+      out.push("🕐");
+    }
+  }
+  livesEl.textContent = out.join(" ");
+}
+
+function dropCandy() {
+  if (!running) return;
+
+  const c = document.createElement("img");
+  c.src = candyImg;
+  c.className = "candy";
+  c.style.top = "-30px";
+  c.style.left = rand(10,90) + "%";
+  box.appendChild(c);
+
+  let y = -30;
+  const fall = setInterval(() => {
+    y += 4;
+    c.style.top = y + "px";
+    if (y > box.clientHeight) {
+      clearInterval(fall);
+      c.remove();
+    }
+  }, 16);
+
+  count++;
+}
+
+function start() {
+  interval = setInterval(dropCandy, cfg.speed);
+}
+
+function stopGame() {
+  if (!running) return;
+  running = false;
+  clearInterval(interval);
+
+  const diff = Math.abs(count - goal);
+
+  if (diff <= 5) {
+    lives--;
+    updateLives("win");
+
+    if (lives <= 0) {
+      win();
+    } else {
+      nextRound();
+    }
+  } else {
+    lives--;
+    updateLives("lose");
+
+    if (lives <= 0) {
+      lose();
+    } else {
+      nextRound();
+    }
+  }
+}
+
+function nextRound() {
+  count = 0;
+  goal = rand(cfg.min, cfg.max);
+  goalEl.textContent = goal;
+  box.innerHTML = "";
+  running = true;
+  setTimeout(start, 800);
+}
+
+function win() {
+  overlay.style.display = "flex";
+  overlayText.innerHTML = `
+    <h2>🎉 Молодец!</h2>
+    <p>
+      Ты прошёл испытание.<br><br>
+      Пришли скрин в группу<br>
+      <b>«TulenmasCandy Hunt»</b><br>
+      чтобы получить TulenmasCandy 🍬
+    </p>
+  `;
+}
+
+function lose() {
+  overlay.style.display = "flex";
+  overlayText.innerHTML = `
+    <h2>💥 Провал</h2>
+    <p>Тюлень недоволен 🦭😡</p>
+  `;
+}
+
+document.getElementById("stopBtn").addEventListener("click", stopGame);
+
+start();
+</script>
+
+</body>
+</html>
