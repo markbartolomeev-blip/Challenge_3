@@ -6,235 +6,258 @@
 <title>TulenmasCandy Box</title>
 
 <style>
-  body {
-    margin: 0;
-    background: #0b0b0b;
-    color: white;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-    user-select: none;
-  }
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  user-select:none;
+  overflow:hidden;
+}
 
-  #top {
-    text-align: center;
-    font-size: 28px;
-    padding: 10px;
-  }
+#top{
+  text-align:center;
+  font-size:26px;
+  padding:10px;
+}
 
-  #target {
-    font-size: 18px;
-    margin-top: 5px;
-  }
+#hearts{
+  position:fixed;
+  left:10px;
+  top:80px;
+  font-size:26px;
+}
 
-  #box {
-    position: relative;
-    margin: 10px auto;
-    width: 90vw;
-    max-width: 400px;
-    height: 60vh;
-    border: 4px solid #fff;
-    border-radius: 20px;
-    overflow: hidden;
-    background: #1a1a1a;
-  }
+#box{
+  position:relative;
+  margin:70px auto 0;
+  width:90vw;
+  max-width:400px;
+  height:55vh;
+  border:4px solid #fff;
+  border-radius:20px;
+  overflow:hidden;
+  background:#1a1a1a;
+}
 
-  .candy {
-    position: absolute;
-    width: 26px;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
+.candy{
+  position:absolute;
+  width:26px;
+  pointer-events:none;
+}
 
-  #stopBtn {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: none;
-    background: red;
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-  }
+#counter{
+  text-align:center;
+  margin-top:10px;
+  font-size:18px;
+}
 
-  #overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-    z-index: 10;
-    display: none;
-  }
+#stopBtn{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  border:none;
+  background:red;
+  color:#fff;
+  font-size:18px;
+  font-weight:bold;
+}
 
-  #overlay .box {
-    font-size: 20px;
-  }
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.88);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  z-index:10;
+}
 
-  button {
-    margin-top: 20px;
-    padding: 12px 20px;
-    font-size: 16px;
-    border-radius: 10px;
-    border: none;
-  }
+.box{
+  font-size:20px;
+  padding:20px;
+}
+
+button{
+  margin-top:20px;
+  padding:12px 20px;
+  font-size:16px;
+  border:none;
+  border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
-<div id="top">
-  <div id="lives">🕐 🕐 🕐</div>
-  <div id="target">Цель: <span id="goal"></span></div>
-</div>
+<div id="top">🕐 🕐 🕐</div>
+<div id="hearts"></div>
 
 <div id="box"></div>
 
+<div id="counter">
+  <span id="current">0</span> /
+  <span id="goal">0</span>
+</div>
+
 <button id="stopBtn">СТОП</button>
 
-<div id="overlay">
+<!-- ОБУЧЕНИЕ -->
+<div class="overlay" id="tutorial">
+  <div class="box">
+    <h2>📦 TulenmasCandy Box</h2>
+    <p>
+      Конфеты падают в коробку 🍬<br><br>
+      Твоя задача — нажать <b>СТОП</b><br>
+      когда количество будет<br>
+      <b>в пределах ±5 от цели</b>.<br><br>
+      Ошибка = 💔<br>
+      Все сердца разбиты —<br>
+      <b>игра блокируется навсегда</b>.
+    </p>
+    <button onclick="startGame()">Понятно</button>
+  </div>
+</div>
+
+<!-- ОВЕРЛЕЙ -->
+<div class="overlay" id="overlay" style="display:none">
   <div class="box" id="overlayText"></div>
 </div>
 
 <script>
-/* ===== НАСТРОЙКИ ===== */
 const candyImg = "0D1FE365-BEBC-45DE-B474-68D1B195F3AC.png";
 
-const difficulties = {
-  easy:  { lives: 3, speed: 800, min: 20, max: 40 },
-  hard:  { lives: 4, speed: 450, min: 50, max: 80 },
-  insane:{ lives: 5, speed: 250, min: 80, max: 120 }
-};
+/* 🔒 БЛОКИРОВКА */
+if(localStorage.getItem("tulen_blocked")){
+  document.body.innerHTML = `
+    <div class="overlay">
+      <div class="box">
+        <h2>⛔ ДОСТУП ЗАБЛОКИРОВАН</h2>
+        <p>Ты потерял все попытки.<br>Тюлень разочарован 🦭💔</p>
+      </div>
+    </div>`;
+}
 
-// 👉 МЕНЯЙ СЛОЖНОСТЬ ЗДЕСЬ
-const mode = "easy"; // easy | hard | insane
-/* ===================== */
+/* НАСТРОЙКИ */
+const levels = [
+  {speed:700, streams:1, min:20, max:40},
+  {speed:400, streams:2, min:50, max:80},
+  {speed:220, streams:3, min:80, max:120}
+];
 
-const cfg = difficulties[mode];
-let lives = cfg.lives;
-let goal = rand(cfg.min, cfg.max);
+let level = 0;
+let hearts = 5;
+let goal = 0;
 let count = 0;
-let running = true;
+let running = false;
 let interval;
+let progress = ["🕐","🕐","🕐"];
 
 const box = document.getElementById("box");
-const livesEl = document.getElementById("lives");
+const heartsEl = document.getElementById("hearts");
+const topEl = document.getElementById("top");
 const goalEl = document.getElementById("goal");
+const currentEl = document.getElementById("current");
 const overlay = document.getElementById("overlay");
 const overlayText = document.getElementById("overlayText");
 
-goalEl.textContent = goal;
-updateLives();
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 
-function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
-
-function updateLives(result) {
-  let out = [];
-  for (let i = 0; i < cfg.lives; i++) {
-    if (i < cfg.lives - lives && result) {
-      out.push(result === "win" ? "✅" : "❌");
-    } else {
-      out.push("🕐");
-    }
-  }
-  livesEl.textContent = out.join(" ");
+function updateUI(){
+  heartsEl.textContent = "❤️".repeat(hearts);
+  topEl.textContent = progress.join(" ");
+  goalEl.textContent = goal;
+  currentEl.textContent = count;
 }
 
-function dropCandy() {
-  if (!running) return;
+function startGame(){
+  document.getElementById("tutorial").style.display="none";
+  startLevel();
+}
+
+function startLevel(){
+  const l = levels[level];
+  goal = rand(l.min, l.max);
+  count = 0;
+  running = true;
+  box.innerHTML="";
+  updateUI();
+
+  interval = setInterval(()=>{
+    for(let i=0;i<l.streams;i++) dropCandy();
+  }, l.speed);
+}
+
+function dropCandy(){
+  if(!running) return;
 
   const c = document.createElement("img");
   c.src = candyImg;
-  c.className = "candy";
-  c.style.top = "-30px";
-  c.style.left = rand(10,90) + "%";
+  c.className="candy";
+  c.style.left = rand(5,95)+"%";
+  c.style.top="-30px";
   box.appendChild(c);
 
-  let y = -30;
-  const fall = setInterval(() => {
-    y += 4;
-    c.style.top = y + "px";
-    if (y > box.clientHeight) {
+  let y=-30;
+  const fall = setInterval(()=>{
+    y+=4;
+    c.style.top=y+"px";
+    if(y>box.clientHeight){
       clearInterval(fall);
       c.remove();
     }
-  }, 16);
+  },16);
 
   count++;
+  currentEl.textContent=count;
 }
 
-function start() {
-  interval = setInterval(dropCandy, cfg.speed);
-}
-
-function stopGame() {
-  if (!running) return;
-  running = false;
+function stopGame(){
+  if(!running) return;
+  running=false;
   clearInterval(interval);
 
-  const diff = Math.abs(count - goal);
+  if(Math.abs(count-goal)<=5){
+    progress[level]="✅";
+    level++;
 
-  if (diff <= 5) {
-    lives--;
-    updateLives("win");
-
-    if (lives <= 0) {
-      win();
-    } else {
-      nextRound();
+    if(level===3){
+      overlay.style.display="flex";
+      overlayText.innerHTML=`
+        <h2>🎉 ПОБЕДА</h2>
+        <p>Все сложности пройдены ✅✅✅<br><br>
+        Пришли скрин в группу<br>
+        <b>«TulenmasCandy Hunt»</b></p>`;
+    }else{
+      showOverlay("Сложность пройдена ✅", startLevel);
     }
-  } else {
-    lives--;
-    updateLives("lose");
-
-    if (lives <= 0) {
-      lose();
-    } else {
-      nextRound();
+  }else{
+    hearts--;
+    if(hearts<=0){
+      localStorage.setItem("tulen_blocked","1");
+      location.reload();
+    }else{
+      showOverlay("Ошибка 💔", startLevel);
     }
   }
 }
 
-function nextRound() {
-  count = 0;
-  goal = rand(cfg.min, cfg.max);
-  goalEl.textContent = goal;
-  box.innerHTML = "";
-  running = true;
-  setTimeout(start, 800);
+function showOverlay(text, cb){
+  overlay.style.display="flex";
+  overlayText.innerHTML=`<p>${text}</p>`;
+  setTimeout(()=>{
+    overlay.style.display="none";
+    cb();
+  },1200);
 }
 
-function win() {
-  overlay.style.display = "flex";
-  overlayText.innerHTML = `
-    <h2>🎉 Молодец!</h2>
-    <p>
-      Ты прошёл испытание.<br><br>
-      Пришли скрин в группу<br>
-      <b>«TulenmasCandy Hunt»</b><br>
-      чтобы получить TulenmasCandy 🍬
-    </p>
-  `;
-}
-
-function lose() {
-  overlay.style.display = "flex";
-  overlayText.innerHTML = `
-    <h2>💥 Провал</h2>
-    <p>Тюлень недоволен 🦭😡</p>
-  `;
-}
-
-document.getElementById("stopBtn").addEventListener("click", stopGame);
-
-start();
+document.getElementById("stopBtn").onclick = stopGame;
+updateUI();
 </script>
 
 </body>
