@@ -47,25 +47,28 @@ body{
   pointer-events:none;
 }
 
-#counter{
+#controls{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
   text-align:center;
-  margin-top:12px;
-  font-size:18px;
 }
 
 #stopBtn{
-  position:fixed;
-  bottom:70px;
-  left:50%;
-  transform:translateX(-50%);
-  width:130px;
-  height:130px;
+  width:100px;
+  height:100px;
   border-radius:50%;
   border:none;
   background:red;
   color:#fff;
-  font-size:20px;
+  font-size:18px;
   font-weight:bold;
+}
+
+#counter{
+  margin-top:8px;
+  font-size:18px;
 }
 
 .overlay{
@@ -107,21 +110,22 @@ button{
 
 <div id="box"></div>
 
-<div id="counter">
-  <span id="current">0</span> /
-  <span id="goal">0</span>
+<div id="controls">
+  <button id="stopBtn">СТОП</button>
+  <div id="counter">
+    <span id="current">0</span> /
+    <span id="goal">0</span>
+  </div>
 </div>
-
-<button id="stopBtn">СТОП</button>
 
 <!-- ОБУЧЕНИЕ -->
 <div class="overlay" id="tutorial" style="display:none">
   <div class="box">
     <h2>📦 TulenmasCandy Box</h2>
     <p>
-      Конфеты падают в коробку 🍬<br><br>
-      Нажми <b>СТОП</b>, когда количество<br>
-      будет в пределах <b>±5</b> от цели.<br><br>
+      Останови поток конфет 🍬<br><br>
+      Нужно попасть в диапазон<br>
+      <b>±3 от цели</b><br><br>
       5 ошибок — блокировка навсегда.
     </p>
     <button onclick="startGame()">Понятно</button>
@@ -155,7 +159,7 @@ preload.onload = ()=>{
   document.getElementById("tutorial").style.display="flex";
 };
 
-/* НАСТРОЙКИ СЛОЖНОСТЕЙ */
+/* СЛОЖНОСТИ */
 const levels = [
   {speed:650, streams:1, min:20, max:40},
   {speed:380, streams:2, min:50, max:80},
@@ -205,7 +209,7 @@ function startLevel(){
   }, l.speed);
 }
 
-/* 🍬 РЕАЛЬНОЕ ПАДЕНИЕ И СТАК */
+/* 🍬 ПАДЕНИЕ И СТАК */
 function dropCandy(){
   if(!running) return;
 
@@ -225,22 +229,17 @@ function dropCandy(){
     y += 5;
     let stop = false;
 
-    // ДНО
     if(y + size >= box.clientHeight){
       y = box.clientHeight - size;
       stop = true;
     }
 
-    // СТОЛКНОВЕНИЕ
-    const others = document.querySelectorAll(".candy");
-    others.forEach(o=>{
+    document.querySelectorAll(".candy").forEach(o=>{
       if(o===candy) return;
       const oy = parseFloat(o.style.top);
       const ox = parseFloat(o.style.left);
-
       const overlapX = x < ox+size && x+size > ox;
       const touchY = y+size >= oy && y+size <= oy+6;
-
       if(overlapX && touchY){
         y = oy - size;
         stop = true;
@@ -260,13 +259,13 @@ function stopGame(){
   running=false;
   clearInterval(interval);
 
-  if(Math.abs(count-goal)<=5){
-    progress[level]="✅";
+  if(Math.abs(count - goal) <= 3){
+    progress[level] = "✅";
     level++;
 
-    if(level===3){
+    if(level === 3){
       overlay.style.display="flex";
-      overlayText.innerHTML=`
+      overlayText.innerHTML = `
         <h2>🎉 ПОБЕДА</h2>
         <p>Все сложности пройдены ✅✅✅</p>`;
     }else{
@@ -274,7 +273,7 @@ function stopGame(){
     }
   }else{
     hearts--;
-    if(hearts<=0){
+    if(hearts <= 0){
       localStorage.setItem("tulen_blocked","1");
       location.reload();
     }else{
@@ -285,7 +284,7 @@ function stopGame(){
 
 function showOverlay(text, cb){
   overlay.style.display="flex";
-  overlayText.innerHTML=`<p>${text}</p>`;
+  overlayText.innerHTML = `<p>${text}</p>`;
   setTimeout(()=>{
     overlay.style.display="none";
     cb();
