@@ -95,6 +95,13 @@ button{
 
 <body>
 
+<!-- ЗАГРУЗКА -->
+<div class="overlay" id="loading">
+  <div class="box">
+    <h2>Загрузка TulenmasCandy… 🍬</h2>
+  </div>
+</div>
+
 <div id="top">🕐 🕐 🕐</div>
 <div id="hearts"></div>
 
@@ -108,17 +115,14 @@ button{
 <button id="stopBtn">СТОП</button>
 
 <!-- ОБУЧЕНИЕ -->
-<div class="overlay" id="tutorial">
+<div class="overlay" id="tutorial" style="display:none">
   <div class="box">
     <h2>📦 TulenmasCandy Box</h2>
     <p>
       Конфеты падают в коробку 🍬<br><br>
-      Твоя задача — нажать <b>СТОП</b><br>
-      когда количество будет<br>
-      <b>в пределах ±5 от цели</b>.<br><br>
-      Ошибка = 💔<br>
-      Все сердца разбиты —<br>
-      <b>игра блокируется навсегда</b>.
+      Нажми <b>СТОП</b>, когда количество<br>
+      будет <b>в пределах ±5</b> от цели.<br><br>
+      Все сердца 💔 — блокировка навсегда.
     </p>
     <button onclick="startGame()">Понятно</button>
   </div>
@@ -138,10 +142,18 @@ if(localStorage.getItem("tulen_blocked")){
     <div class="overlay">
       <div class="box">
         <h2>⛔ ДОСТУП ЗАБЛОКИРОВАН</h2>
-        <p>Ты потерял все попытки.<br>Тюлень разочарован 🦭💔</p>
+        <p>Тюлень недоволен 🦭💔</p>
       </div>
     </div>`;
 }
+
+/* ПРЕДЗАГРУЗКА ТЕКСТУРЫ */
+const preload = new Image();
+preload.src = candyImg;
+preload.onload = () => {
+  document.getElementById("loading").style.display="none";
+  document.getElementById("tutorial").style.display="flex";
+};
 
 /* НАСТРОЙКИ */
 const levels = [
@@ -157,6 +169,7 @@ let count = 0;
 let running = false;
 let interval;
 let progress = ["🕐","🕐","🕐"];
+let stackHeight = 0;
 
 const box = document.getElementById("box");
 const heartsEl = document.getElementById("hearts");
@@ -184,6 +197,7 @@ function startLevel(){
   const l = levels[level];
   goal = rand(l.min, l.max);
   count = 0;
+  stackHeight = 0;
   running = true;
   box.innerHTML="";
   updateUI();
@@ -200,21 +214,24 @@ function dropCandy(){
   c.src = candyImg;
   c.className="candy";
   c.style.left = rand(5,95)+"%";
-  c.style.top="-30px";
   box.appendChild(c);
 
-  let y=-30;
+  const candySize = 26;
+  const targetY = box.clientHeight - candySize - stackHeight;
+  stackHeight += candySize * 0.9;
+
+  let y = -30;
   const fall = setInterval(()=>{
-    y+=4;
-    c.style.top=y+"px";
-    if(y>box.clientHeight){
+    y += 6;
+    if(y >= targetY){
+      y = targetY;
       clearInterval(fall);
-      c.remove();
     }
+    c.style.top = y + "px";
   },16);
 
   count++;
-  currentEl.textContent=count;
+  currentEl.textContent = count;
 }
 
 function stopGame(){
@@ -230,9 +247,11 @@ function stopGame(){
       overlay.style.display="flex";
       overlayText.innerHTML=`
         <h2>🎉 ПОБЕДА</h2>
-        <p>Все сложности пройдены ✅✅✅<br><br>
-        Пришли скрин в группу<br>
-        <b>«TulenmasCandy Hunt»</b></p>`;
+        <p>
+          Все сложности пройдены ✅✅✅<br><br>
+          Пришли скрин в группу<br>
+          <b>«TulenmasCandy Hunt»</b>
+        </p>`;
     }else{
       showOverlay("Сложность пройдена ✅", startLevel);
     }
